@@ -101,6 +101,9 @@ ros2 run orbslam3_ros2 gemini2l_rviz
 - `/orb_slam3/odometry`：当前位姿；
 - `orb_map -> orb_camera`：相机 TF。
 
-本次更新实现了 ORB-SLAM3 RGB-D-Inertial 兼容补丁的应用与基础运行状态检查，并完成了 Gemini 2L RGB-D-Inertial 数据接入、全局稠密地图构建及可视化支持，但跟踪稳定性和部分运行问题仍需进一步验证。
+## 更新日志
+260925
+本次更新实现了 ORB-SLAM3 RGB-D-Inertial 兼容补丁的应用与基础运行状态检查，并基本实现了 Gemini 2L RGB-D-Inertial 数据接入、全局稠密地图构建及可视化支持
+问题： **漂移、墙面增厚和少量离群点。**。
 
 ##
