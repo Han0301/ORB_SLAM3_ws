@@ -1,0 +1,21 @@
+# ROS 2 and native build products
+/build/
+/install/
+/log/
+/local/
+/sysroot/
+/debs/
+
+# Generated maps and runtime output
+/maps/*
+!/maps/.gitkeep
+/results/
+
+# Editor and Python caches
+/.vscode/
+**/__pycache__/
+*.py[cod]
+
+# ORB-SLAM3 generated build products inside the source submodule
+/third_party/ORB_SLAM3/build-core/
+

@@ -1,0 +1,117 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 016e743..344b89f 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -12,20 +12,15 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall   -O3")
+ set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -march=native")
+ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native")
+ 
+-# Check C++11 or C++0x support
++# Pangolin 0.9 uses C++14 type traits; GCC 13 on Ubuntu 24.04 supports C++14.
+ include(CheckCXXCompilerFlag)
+-CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
+-CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
+-if(COMPILER_SUPPORTS_CXX11)
+-   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
++CHECK_CXX_COMPILER_FLAG("-std=c++14" COMPILER_SUPPORTS_CXX14)
++if(COMPILER_SUPPORTS_CXX14)
++   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
+    add_definitions(-DCOMPILEDWITHC11)
+-   message(STATUS "Using flag -std=c++11.")
+-elseif(COMPILER_SUPPORTS_CXX0X)
+-   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+-   add_definitions(-DCOMPILEDWITHC0X)
+-   message(STATUS "Using flag -std=c++0x.")
++   message(STATUS "Using flag -std=c++14.")
+ else()
+-   message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
++   message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++14 support. Please use a different C++ compiler.")
+ endif()
+ 
+ LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
+diff --git a/include/System.h b/include/System.h
+index 872c86e..3d12336 100644
+--- a/include/System.h
++++ b/include/System.h
+@@ -175,10 +175,12 @@ public:
+     // You can call this right after TrackMonocular (or stereo or RGBD)
+     int GetTrackingState();
+     std::vector<MapPoint*> GetTrackedMapPoints();
++    std::vector<MapPoint*> GetAllMapPoints();
+     std::vector<cv::KeyPoint> GetTrackedKeyPointsUn();
+ 
+     // For debugging
+     double GetTimeFromIMUInit();
++    bool IsImuInitialized();
+     bool isLost();
+     bool isFinished();
+ 
+diff --git a/src/LocalMapping.cc b/src/LocalMapping.cc
+index 53df332..cb721f4 100644
+--- a/src/LocalMapping.cc
++++ b/src/LocalMapping.cc
+@@ -135,7 +135,10 @@ void LocalMapping::Run()
+                             mTinit += mpCurrentKeyFrame->mTimeStamp - mpCurrentKeyFrame->mPrevKF->mTimeStamp;
+                         if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA2())
+                         {
+-                            if((mTinit<10.f) && (dist<0.02))
++                            // Monocular-inertial needs early motion to recover metric scale.
++                            // RGB-D/stereo already provide metric scale, so resetting their
++                            // maps here causes an endless reset loop while starting slowly.
++                            if(mbMonocular && (mTinit<10.f) && (dist<0.02))
+                             {
+                                 cout << "Not enough motion for initializing. Reseting..." << endl;
+                                 unique_lock<mutex> lock(mMutexReset);
+diff --git a/src/System.cc b/src/System.cc
+index 60d9c51..5373bce 100644
+--- a/src/System.cc
++++ b/src/System.cc
+@@ -1330,6 +1330,11 @@ vector<MapPoint*> System::GetTrackedMapPoints()
+     return mTrackedMapPoints;
+ }
+ 
++vector<MapPoint*> System::GetAllMapPoints()
++{
++    return mpAtlas->GetAllMapPoints();
++}
++
+ vector<cv::KeyPoint> System::GetTrackedKeyPointsUn()
+ {
+     unique_lock<mutex> lock(mMutexState);
+@@ -1345,6 +1350,11 @@ double System::GetTimeFromIMUInit()
+         return 0.f;
+ }
+ 
++bool System::IsImuInitialized()
++{
++    return mpAtlas && mpAtlas->isImuInitialized();
++}
++
+ bool System::isLost()
+ {
+     if (!mpAtlas->isImuInitialized())
+@@ -1546,4 +1556,3 @@ string System::CalculateCheckSum(string filename, int type)
+ }
+ 
+ } //namespace ORB_SLAM
+-
+diff --git a/src/Tracking.cc b/src/Tracking.cc
+index 5191451..08123cb 100644
+--- a/src/Tracking.cc
++++ b/src/Tracking.cc
+@@ -51,6 +51,15 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
+     // Load camera parameters from settings file
+     if(settings){
+         newParameterLoader(settings);
++
++        // File.version 1.0 uses Settings/newParameterLoader(), while the
++        // upstream IMU.fastInit parser only exists in the legacy branch.
++        // Read it here as well so the same YAML option works in both paths.
++        cv::FileStorage fSettings(strSettingPath, cv::FileStorage::READ);
++        const cv::FileNode fastInitNode = fSettings["IMU.fastInit"];
++        mFastInit = !fastInitNode.empty() && static_cast<int>(fastInitNode) != 0;
++        if(mFastInit)
++            cout << "Fast IMU initialization enabled (File.version 1.0)" << endl;
+     }
+     else{
+         cv::FileStorage fSettings(strSettingPath, cv::FileStorage::READ);

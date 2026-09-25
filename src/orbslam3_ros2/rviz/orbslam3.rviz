@@ -1,0 +1,82 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+  - Class: rviz_common/Selection
+    Name: Selection
+  - Class: rviz_common/Tool Properties
+    Name: Tool Properties
+  - Class: rviz_common/Views
+    Name: Views
+Visualization Manager:
+  Class: ""
+  Global Options:
+    Fixed Frame: orb_map
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Name: Grid
+      Enabled: true
+      Cell Size: 0.5
+    - Class: rviz_default_plugins/PointCloud2
+      Name: ORB Sparse Global Map
+      Enabled: true
+      Topic:
+        Value: /orb_slam3/map_points
+      Size (Pixels): 3
+      Style: Points
+    - Class: rviz_default_plugins/PointCloud2
+      Name: Dense Global Map
+      Enabled: true
+      Topic:
+        Value: /orb_slam3/global_dense_map
+      Size (Pixels): 2
+      Style: Points
+      Color Transformer: RGB8
+    - Class: rviz_default_plugins/Path
+      Name: Camera Path
+      Enabled: true
+      Topic:
+        Value: /orb_slam3/path
+      Line Style: Lines
+      Line Width: 0.03
+    - Class: rviz_default_plugins/Pose
+      Name: SLAM Camera Pose
+      Enabled: true
+      Topic:
+        Value: /orb_slam3/pose
+      Shape: Axes
+      Axes Length: 0.25
+      Axes Radius: 0.02
+    - Class: rviz_default_plugins/Odometry
+      Name: SLAM Odometry
+      Enabled: false
+      Topic:
+        Value: /orb_slam3/odometry
+      Shape:
+        Value: Arrow
+    - Class: rviz_default_plugins/Image
+      Name: Camera RGB
+      Enabled: false
+      Topic:
+        Value: /camera/color/image_raw
+    - Class: rviz_default_plugins/TF
+      Name: TF
+      Enabled: true
+  Tools:
+    - Class: rviz_default_plugins/Interact
+    - Class: rviz_default_plugins/MoveCamera
+    - Class: rviz_default_plugins/Select
+    - Class: rviz_default_plugins/FocusCamera
+    - Class: rviz_default_plugins/Measure
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Distance: 5
+      Focal Point:
+        X: 0
+        Y: 0
+        Z: 0
+      Pitch: 0.6
+      Yaw: 0.8
+Window Geometry:
+  Width: 1200
+  Height: 800

@@ -1,0 +1,12 @@
+/orb_slam3/rgbd:
+  ros__parameters:
+    vocabulary: /home/h/ORBSLAM_ws/third_party/ORB_SLAM3/Vocabulary/ORBvoc.txt
+    settings: /home/h/ORBSLAM_ws/install/share/orbslam3_ros2/config/gemini2l_rgbd_imu.yaml
+    color_topic: /camera/color/image_raw
+    depth_topic: /camera/depth/image_raw
+    imu_topic: /camera/gyro_accel/sample
+    use_imu: true
+    enable_viewer: false
+    map_frame: orb_map
+    camera_frame: orb_camera
+    max_path_poses: 10000

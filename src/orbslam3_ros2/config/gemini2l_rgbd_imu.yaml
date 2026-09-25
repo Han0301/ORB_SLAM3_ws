@@ -1,0 +1,56 @@
+%YAML:1.0
+File.version: "1.0"
+Camera.type: "PinHole"
+Camera1.fx: 607.7555541992188
+Camera1.fy: 607.4334106445312
+Camera1.cx: 637.3951416015625
+Camera1.cy: 389.4447021484375
+Camera1.k1: -0.8627082705497742
+Camera1.k2: 0.1319340467453003
+Camera1.p1: 0.0004571729223243892
+Camera1.p2: -0.0003239034558646381
+Camera1.k3: 0.10868078470230103
+Camera.width: 1280
+Camera.height: 800
+Camera.fps: 30
+Camera.RGB: 0
+RGBD.DepthMapFactor: 1.0
+Stereo.ThDepth: 40.0
+Stereo.b: 0.075
+
+# T_b_c1 maps color-camera coordinates into the IMU/body coordinates.
+# It is derived from this device's factory depth->color and depth->gyro extrinsics.
+IMU.T_b_c1: !!opencv-matrix
+   rows: 4
+   cols: 4
+   dt: f
+   data: [0.9999111891, 0.0132946316, 0.0009523854, 0.0251208473,
+         -0.0132943094, 0.9999115467, -0.0003444757, 0.0000604320,
+         -0.0009568809, 0.0003317838, 0.9999994636, -0.0000311548,
+          0.0, 0.0, 0.0, 1.0]
+# Gemini 2L RGB-D already provides metric scale.  Bypass ORB-SLAM3's strict
+# first-frame acceleration gate; IMU preintegration and later BA remain enabled.
+IMU.fastInit: 1
+IMU.InsertKFsWhenLost: 0
+IMU.NoiseGyro: 0.0001
+IMU.NoiseAcc: 0.002
+IMU.GyroWalk: 0.00001
+IMU.AccWalk: 0.0001
+IMU.Frequency: 200.0
+
+ORBextractor.nFeatures: 1600
+ORBextractor.scaleFactor: 1.2
+ORBextractor.nLevels: 8
+ORBextractor.iniThFAST: 20
+ORBextractor.minThFAST: 7
+Viewer.KeyFrameSize: 0.05
+Viewer.KeyFrameLineWidth: 1.0
+Viewer.GraphLineWidth: 0.9
+Viewer.PointSize: 2.0
+Viewer.CameraSize: 0.08
+Viewer.CameraLineWidth: 3.0
+Viewer.ViewpointX: 0.0
+Viewer.ViewpointY: -0.7
+Viewer.ViewpointZ: -1.8
+Viewer.ViewpointF: 500.0
+System.SaveAtlasToFile: "maps/gemini2l_imu_atlas"
