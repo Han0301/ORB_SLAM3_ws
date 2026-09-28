@@ -27,7 +27,7 @@ Visualization Manager:
       Name: Dense Global Map
       Enabled: true
       Topic:
-        Value: /orb_slam3/global_dense_map
+        Value: /global_dense_map
       Size (Pixels): 2
       Style: Points
       Color Transformer: RGB8

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 project(orbslam3_ros2)
-
+ 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type")
@@ -22,6 +22,7 @@ find_package(Pangolin REQUIRED PATHS "${CMAKE_CURRENT_SOURCE_DIR}/../../local/li
 set(ORB_SLAM3_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../third_party/ORB_SLAM3")
 set(PANGOLIN_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../local")
 
+# add_executable cpp for the nodes
 add_executable(rgbd_node src/rgbd_node.cpp)
 add_executable(dense_mapper src/dense_mapper.cpp)
 target_include_directories(rgbd_node PRIVATE
@@ -54,12 +55,5 @@ set_target_properties(rgbd_node PROPERTIES
 )
 
 install(TARGETS rgbd_node dense_mapper DESTINATION lib/${PROJECT_NAME})
-install(PROGRAMS
-  scripts/gemini2l_camera
-  scripts/gemini2l_slam
-  scripts/gemini2l_slam_viewer
-  scripts/gemini2l_rviz
-  DESTINATION lib/${PROJECT_NAME}
-)
-install(DIRECTORY config rviz DESTINATION share/${PROJECT_NAME})
+install(DIRECTORY config launch rviz DESTINATION share/${PROJECT_NAME})
 ament_package()

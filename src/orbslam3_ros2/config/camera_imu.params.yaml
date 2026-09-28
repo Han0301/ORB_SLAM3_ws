@@ -1,25 +1,29 @@
-/camera/camera:
+/camera/camera:     # node name
   ros__parameters:
     camera_name: camera
-    depth_registration: true
-    align_mode: HW
+    depth_registration: true    # Map the Depth image to the Color Camera's coordinate system.
+    align_mode: HW              # Hardware Alignment
     # Firmware 1.5.02 can stream each sensor normally while SDK frame-set
     # aggregation stalls ROS publication. RGB-D is synchronized downstream
     # by the SLAM wrapper's ApproximateTime policy.
-    enable_frame_sync: false
+    enable_frame_sync: true      # ！！！ Frame synchronization is disabled.now use the ApproximateTime policy in the SLAM wrapper.
+
     enable_color: true
     color_width: 1280
     color_height: 800
     color_fps: 30
     color_format: MJPG
+
     enable_depth: true
     depth_width: 1280
     depth_height: 800
     depth_fps: 30
     depth_format: Y16 
+
     enable_ir: false
     enable_point_cloud: false
     enable_colored_point_cloud: false
+
     enable_accel: true
     enable_gyro: true
     enable_sync_output_accel_gyro: true
@@ -27,5 +31,6 @@
     gyro_rate: 200hz
     accel_range: 4g
     gyro_range: 1000dps
+
     enable_publish_extrinsic: true
     publish_tf: true
