@@ -1,0 +1,40 @@
+/occupancy_mapper:
+  ros__parameters:
+    resolution: 0.05
+    map_width: 30.0
+    map_height: 30.0
+
+    pixel_stride: 8
+    process_every_n_frames: 6
+    publish_every_n_processed_frames: 5
+    sync_max_interval_ms: 10.0
+
+    min_depth: 0.35
+    max_depth: 5.0
+
+    # Set this to the measured lens-center height at mapping startup.
+    initial_camera_height: 1.00
+    obstacle_min_height: 0.10
+    obstacle_max_height: 1.80
+    floor_clearance_height: 0.15
+
+    hit_log_odds: 4
+    miss_log_odds: 1
+    min_log_odds: -20
+    max_log_odds: 20
+    # Both occupied and free cells require confirmation from at least two
+    # processed depth frames before they are exposed to navigation.
+    occupied_log_odds_threshold: 8
+    free_log_odds_threshold: -2
+
+    pose_jump_translation_threshold: 0.30
+    pose_jump_rotation_threshold: 0.45
+
+    depth_topic: /camera/depth/image_raw
+    camera_info_topic: /camera/color/camera_info
+    pose_topic: /orb_slam3/pose
+    tracking_state_topic: /orb_slam3/tracking_state
+    imu_initialized_topic: /orb_slam3/imu_initialized
+
+    world_frame: orb_map
+    map_frame: nav_map

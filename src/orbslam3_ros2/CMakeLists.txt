@@ -25,6 +25,7 @@ set(PANGOLIN_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../local")
 # add_executable cpp for the nodes
 add_executable(rgbd_node src/rgbd_node.cpp)
 add_executable(dense_mapper src/dense_mapper.cpp)
+add_executable(occupancy_mapper src/occupancy_mapper.cpp)
 target_include_directories(rgbd_node PRIVATE
   ${ORB_SLAM3_ROOT}
   ${ORB_SLAM3_ROOT}/include
@@ -42,7 +43,12 @@ ament_target_dependencies(rgbd_node
 ament_target_dependencies(dense_mapper
   rclcpp sensor_msgs geometry_msgs std_msgs std_srvs cv_bridge message_filters
 )
+ament_target_dependencies(occupancy_mapper
+  rclcpp sensor_msgs geometry_msgs nav_msgs std_msgs std_srvs cv_bridge
+  message_filters tf2_ros
+)
 target_link_libraries(dense_mapper ${OpenCV_LIBS})
+target_link_libraries(occupancy_mapper ${OpenCV_LIBS})
 target_link_libraries(rgbd_node
   ${ORB_SLAM3_ROOT}/lib/libORB_SLAM3.so
   ${OpenCV_LIBS}
@@ -54,6 +60,6 @@ set_target_properties(rgbd_node PROPERTIES
   INSTALL_RPATH "${ORB_SLAM3_ROOT}/lib;${PANGOLIN_ROOT}/lib"
 )
 
-install(TARGETS rgbd_node dense_mapper DESTINATION lib/${PROJECT_NAME})
+install(TARGETS rgbd_node dense_mapper occupancy_mapper DESTINATION lib/${PROJECT_NAME})
 install(DIRECTORY config launch rviz DESTINATION share/${PROJECT_NAME})
 ament_package()

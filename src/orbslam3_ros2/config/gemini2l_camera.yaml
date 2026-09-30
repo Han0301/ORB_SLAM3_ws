@@ -1,0 +1,30 @@
+/camera/camera:
+  ros__parameters:
+    camera_name: camera
+
+    depth_registration: true
+    align_mode: HW
+    enable_frame_sync: false
+
+    camera_width: 1280
+    camera_height: 800
+    camera_fps: 30
+
+    enable_color: true
+    color_format: MJPG
+
+    enable_depth: true
+    depth_format: Y16
+
+    enable_ir: false
+    enable_point_cloud: false
+    enable_colored_point_cloud: false
+
+    use_imu: true
+    accel_rate: 200hz
+    gyro_rate: 200hz
+    accel_range: 4g
+    gyro_range: 1000dps
+
+    enable_publish_extrinsic: true
+    publish_tf: true

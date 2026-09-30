@@ -19,11 +19,11 @@ def generate_launch_description():
     return LaunchDescription([
         Node(
             package="orbslam3_ros2",
-            executable="dense_mapper",
-            name="dense_mapper",
+            executable="occupancy_mapper",
+            name="occupancy_mapper",
             output="screen",
             parameters=[
-                str(share / "config" / "dense_mapper.yaml"),
+                str(share / "config" / "occupancy_map.yaml"),
                 {"use_imu": use_imu},
             ],
         ),

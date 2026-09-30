@@ -23,28 +23,58 @@
 #include <std_srvs/srv/empty.hpp>
 #include <std_srvs/srv/trigger.hpp>
 
-struct VoxelKey {
+struct VoxelKey
+{
   int x, y, z;
-  bool operator==(const VoxelKey &o) const { return x == o.x && y == o.y && z == o.z; }
-};
-struct VoxelHash {
-  std::size_t operator()(const VoxelKey &k) const {
-    std::size_t h = std::hash<int>{}(k.x);
-    h ^= std::hash<int>{}(k.y) + 0x9e3779b9 + (h << 6) + (h >> 2);
-    h ^= std::hash<int>{}(k.z) + 0x9e3779b9 + (h << 6) + (h >> 2);
+  bool operator==(const VoxelKey &o) const
+  {
+    return x == o.x && y == o.y && z == o.z;
+  }
+}
+;
+
+struct VoxelHash
+{
+  std::size_t operator()(const VoxelKey &k) const
+  {
+    std::size_t h = std::hash<int>
+    {
+    }
+    (k.x);
+    h ^= std::hash<int>
+    {
+    }
+    (k.y) + 0x9e3779b9 + (h << 6) + (h >> 2);
+    h ^= std::hash<int>
+    {
+    }
+    (k.z) + 0x9e3779b9 + (h << 6) + (h >> 2);
     return h;
   }
-};
-struct VoxelValue { double x=0, y=0, z=0, r=0, g=0, b=0; uint32_t n=0; };
+}
+;
 
-class DenseMapper : public rclcpp::Node {
+struct VoxelValue
+{
+  double x=0, y=0, z=0, r=0, g=0, b=0; uint32_t n=0;
+}
+;
+
+class DenseMapper : public rclcpp::Node
+{
+
  public:
-  DenseMapper() : Node("dense_mapper") {
+  DenseMapper() : Node("dense_mapper")
+  {
     voxel_ = declare_parameter("voxel_size", 0.04);
     stride_ = declare_parameter("pixel_stride", 4);
     min_depth_ = declare_parameter("min_depth", 0.25);
     max_depth_ = declare_parameter("max_depth", 6.0);
     publish_every_ = declare_parameter("publish_every_n_frames", 10);
+    sync_max_interval_ms_ = declare_parameter("sync_max_interval_ms", 35.0);
+    imu_stable_frames_required_ = declare_parameter("imu_stable_frames_required", 30);
+    use_imu_ = declare_parameter("use_imu", true);
+    save_enabled_ = declare_parameter("enable_save", true);
     save_path_ = declare_parameter("save_path", "/home/h/ORBSLAM_ws/maps/latest_dense_map.ply");
     const auto autosave_seconds = declare_parameter("autosave_seconds", 10.0);
     const auto color = declare_parameter("color_topic", "/camera/color/image_raw");
@@ -52,42 +82,104 @@ class DenseMapper : public rclcpp::Node {
     const auto pose = declare_parameter("pose_topic", "/orb_slam3/pose");
     const auto info = declare_parameter("camera_info_topic", "/camera/color/camera_info");
     const auto state = declare_parameter("tracking_state_topic", "/orb_slam3/tracking_state");
-    const auto imu = declare_parameter("imu_initialized_topic", "/orb_slam3/imu_initialized");
+    const auto imu = declare_parameter(
+      "imu_initialized_topic", "/orb_slam3/imu_initialized");
     map_frame_ = declare_parameter("map_frame", "orb_map");
 
     info_sub_ = create_subscription<sensor_msgs::msg::CameraInfo>(
-      info, rclcpp::SensorDataQoS(), [this](sensor_msgs::msg::CameraInfo::ConstSharedPtr m) {
+      info, rclcpp::SensorDataQoS(), [this](sensor_msgs::msg::CameraInfo::ConstSharedPtr m)
+      {
         std::lock_guard<std::mutex> l(calib_mutex_); fx_=m->k[0]; fy_=m->k[4]; cx_=m->k[2]; cy_=m->k[5];
-      });
+      }
+      );
+
     state_sub_ = create_subscription<std_msgs::msg::Int32>(state, 10,
-      [this](std_msgs::msg::Int32::ConstSharedPtr m) { tracking_ok_ = (m->data == 2); });
+      [this](std_msgs::msg::Int32::ConstSharedPtr m)
+      {
+        tracking_ok_ = (m->data == 2);
+      }
+      );
+
     imu_sub_ = create_subscription<std_msgs::msg::Bool>(imu, 10,
-      [this](std_msgs::msg::Bool::ConstSharedPtr m) { imu_initialized_ = m->data; });
+      [this](std_msgs::msg::Bool::ConstSharedPtr m)
+      {
+        imu_initialized_ = m->data;
+      }
+      );
+
     clear_service_ = create_service<std_srvs::srv::Empty>("clear",
       [this](const std_srvs::srv::Empty::Request::SharedPtr,
-             std_srvs::srv::Empty::Response::SharedPtr) { clearMap("manual request"); });
+             std_srvs::srv::Empty::Response::SharedPtr)
+             {
+               clearMap("manual request");
+             }
+             );
+
     save_service_ = create_service<std_srvs::srv::Trigger>("save",
       [this](const std_srvs::srv::Trigger::Request::SharedPtr,
-             std_srvs::srv::Trigger::Response::SharedPtr response) {
+             std_srvs::srv::Trigger::Response::SharedPtr response)
+      {
         response->success = saveMap();
-        response->message = response->success ? save_path_ : "dense map is empty or could not be written";
-      });
-    autosave_timer_ = create_wall_timer(
-      std::chrono::duration<double>(autosave_seconds), [this]() {
-        if (dirty_) saveMap();
-      });
+        if (!save_enabled_)
+        {
+          response->message = "dense map saving is disabled";
+        }
+        else
+        {
+          response->message = response->success ?
+              save_path_ : "dense map is empty or could not be written";
+        }
+      }
+      );
+
+    if (save_enabled_ && autosave_seconds > 0.0)
+    {
+
+      autosave_timer_ = create_wall_timer(
+          std::chrono::duration<double>(autosave_seconds),
+          [this]()
+          {
+            if (dirty_)
+            {
+              saveMap();
+            }
+          }
+          );
+    }
+
     color_sub_.subscribe(this, color, rmw_qos_profile_sensor_data);
     depth_sub_.subscribe(this, depth, rmw_qos_profile_sensor_data);
     pose_sub_.subscribe(this, pose, rmw_qos_profile_sensor_data);
     sync_ = std::make_shared<Sync>(Policy(30), color_sub_, depth_sub_, pose_sub_);
+    sync_->setMaxIntervalDuration(
+        rclcpp::Duration::from_seconds(sync_max_interval_ms_ / 1000.0));
     sync_->registerCallback(std::bind(&DenseMapper::callback, this,
       std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
     cloud_pub_ = create_publisher<sensor_msgs::msg::PointCloud2>("global_dense_map", 1);
-    RCLCPP_INFO(get_logger(), "Global dense mapper ready: voxel %.3f m, stride %d; saving to %s",
-                voxel_, stride_, save_path_.c_str());
+    if (save_enabled_)
+    {
+      RCLCPP_INFO(get_logger(),
+                  "Global dense mapper ready: voxel %.3f m, stride %d, sync %.1f ms, "
+                  "IMU gate %s; saving to %s",
+                  voxel_, stride_, sync_max_interval_ms_, use_imu_ ? "enabled" : "disabled",
+                  save_path_.c_str());
+    }
+    else
+    {
+      RCLCPP_INFO(get_logger(),
+                  "Global dense mapper ready: voxel %.3f m, stride %d, sync %.1f ms, "
+                  "IMU gate %s; saving disabled",
+                  voxel_, stride_, sync_max_interval_ms_, use_imu_ ? "enabled" : "disabled");
+    }
   }
 
-  ~DenseMapper() override { saveMap(); }
+  ~DenseMapper() override
+  {
+    if (save_enabled_)
+    {
+      saveMap();
+    }
+  }
 
  private:
   using Image = sensor_msgs::msg::Image;
@@ -95,19 +187,61 @@ class DenseMapper : public rclcpp::Node {
   using Policy = message_filters::sync_policies::ApproximateTime<Image, Image, Pose>;
   using Sync = message_filters::Synchronizer<Policy>;
 
-  void callback(Image::ConstSharedPtr color_msg, Image::ConstSharedPtr depth_msg, Pose::ConstSharedPtr pose) {
-    if (!tracking_ok_ || !imu_initialized_) {
-      if (mapping_active_) clearMap("SLAM tracking lost or IMU not initialized");
+  void callback(Image::ConstSharedPtr color_msg,
+                Image::ConstSharedPtr depth_msg,
+                Pose::ConstSharedPtr pose)
+  {
+    if (use_imu_ && !imu_initialized_)
+    {
+      if (imu_gate_ready_ && !voxels_.empty())
+      {
+        clearMap("IMU initialization lost or SLAM map reset");
+      }
+      imu_gate_ready_ = false;
+      imu_stable_frames_ = 0;
       mapping_active_ = false;
       have_last_pose_ = false;
       return;
     }
-    if (!mapping_active_) {
-      clearMap("starting a new initialized SLAM map");
+
+    if (use_imu_ && !imu_gate_ready_)
+    {
+      ++imu_stable_frames_;
+      if (imu_stable_frames_ < imu_stable_frames_required_)
+      {
+        return;
+      }
+
+      imu_gate_ready_ = true;
+      RCLCPP_INFO(
+          get_logger(),
+          "IMU initialization stable for %d synchronized frames; enabling dense mapping",
+          imu_stable_frames_);
+    }
+
+    if (!tracking_ok_)
+    {
+      if (mapping_active_)
+      {
+        RCLCPP_WARN(
+            get_logger(),
+            "Pausing dense mapping while tracking is lost; preserving %zu voxels",
+            voxels_.size());
+      }
+      mapping_active_ = false;
+      have_last_pose_ = false;
+      return;
+    }
+    if (!mapping_active_)
+    {
+      RCLCPP_INFO(
+          get_logger(), "Dense mapping active; continuing with %zu preserved voxels", voxels_.size());
       mapping_active_ = true;
     }
     double fx, fy, cx, cy;
-    { std::lock_guard<std::mutex> l(calib_mutex_); fx=fx_; fy=fy_; cx=cx_; cy=cy_; }
+    {
+      std::lock_guard<std::mutex> l(calib_mutex_); fx=fx_; fy=fy_; cx=cx_; cy=cy_;
+    }
     if (fx <= 0 || fy <= 0) return;
     const cv::Mat color = cv_bridge::toCvShare(color_msg, sensor_msgs::image_encodings::BGR8)->image;
     cv::Mat depth;
@@ -119,28 +253,58 @@ class DenseMapper : public rclcpp::Node {
     else return;
 
     const auto &q=pose->pose.orientation; const auto &t=pose->pose.position;
-    if (have_last_pose_) {
+    if (have_last_pose_)
+    {
       const double dx=t.x-last_position_[0], dy=t.y-last_position_[1], dz=t.z-last_position_[2];
       const double translation=std::sqrt(dx*dx+dy*dy+dz*dz);
       const double dot=std::abs(q.x*last_orientation_[0]+q.y*last_orientation_[1]+
                                 q.z*last_orientation_[2]+q.w*last_orientation_[3]);
       const double rotation=2.0*std::acos(std::min(1.0, dot));
-      if (translation > 0.30 || rotation > 0.45) {
+      if (translation > 0.30 || rotation > 0.45)
+      {
+        RCLCPP_WARN(get_logger(),
+                    "Discontinuous pose: translation %.3f m, rotation %.3f rad",
+                    translation, rotation);
         clearMap("discontinuous SLAM pose");
-        last_position_={t.x,t.y,t.z}; last_orientation_={q.x,q.y,q.z,q.w};
+        last_position_=
+        {
+          t.x,t.y,t.z
+        }
+        ; last_orientation_=
+        {
+          q.x,q.y,q.z,q.w
+        }
+        ;
         have_last_pose_=true;
         return;
       }
     }
-    last_position_={t.x,t.y,t.z}; last_orientation_={q.x,q.y,q.z,q.w}; have_last_pose_=true;
+    last_position_=
+    {
+      t.x,t.y,t.z
+    }
+    ; last_orientation_=
+    {
+      q.x,q.y,q.z,q.w
+    }
+    ; have_last_pose_=true;
     const double xx=q.x*q.x, yy=q.y*q.y, zz=q.z*q.z;
     const double xy=q.x*q.y, xz=q.x*q.z, yz=q.y*q.z, wx=q.w*q.x, wy=q.w*q.y, wz=q.w*q.z;
-    const std::array<double,9> R={1-2*(yy+zz),2*(xy-wz),2*(xz+wy),2*(xy+wz),1-2*(xx+zz),2*(yz-wx),2*(xz-wy),2*(yz+wx),1-2*(xx+yy)};
-    for (int v=0; v<depth.rows; v+=stride_) for (int u=0; u<depth.cols; u+=stride_) {
+    const std::array<double,9> R=
+    {
+      1-2*(yy+zz),2*(xy-wz),2*(xz+wy),2*(xy+wz),1-2*(xx+zz),2*(yz-wx),2*(xz-wy),2*(yz+wx),1-2*(xx+yy)
+    }
+    ;
+    for (int v=0; v<depth.rows; v+=stride_) for (int u=0; u<depth.cols; u+=stride_)
+    {
       const float z=depth.at<float>(v,u); if (!std::isfinite(z)||z<min_depth_||z>max_depth_) continue;
       const double x=(u-cx)*z/fx, y=(v-cy)*z/fy;
       const double X=R[0]*x+R[1]*y+R[2]*z+t.x, Y=R[3]*x+R[4]*y+R[5]*z+t.y, Z=R[6]*x+R[7]*y+R[8]*z+t.z;
-      const VoxelKey key{(int)std::floor(X/voxel_),(int)std::floor(Y/voxel_),(int)std::floor(Z/voxel_)};
+      const VoxelKey key
+      {
+        (int)std::floor(X/voxel_),(int)std::floor(Y/voxel_),(int)std::floor(Z/voxel_)
+      }
+      ;
       auto &a=voxels_[key]; const auto bgr=color.at<cv::Vec3b>(v,u);
       a.x+=X; a.y+=Y; a.z+=Z; a.r+=bgr[2]; a.g+=bgr[1]; a.b+=bgr[0]; ++a.n;
     }
@@ -148,9 +312,16 @@ class DenseMapper : public rclcpp::Node {
     if (++frames_ % publish_every_ == 0) publish(pose->header.stamp);
   }
 
-  bool saveMap() {
+  bool saveMap()
+  {
+    if (!save_enabled_)
+    {
+      return false;
+    }
+
     if (voxels_.empty()) return false;
-    try {
+    try
+    {
       const std::filesystem::path output(save_path_);
       if (output.has_parent_path()) std::filesystem::create_directories(output.parent_path());
       const auto temporary = output.string() + ".tmp";
@@ -161,14 +332,21 @@ class DenseMapper : public rclcpp::Node {
            << "element vertex " << voxels_.size() << "\n"
            << "property float x\nproperty float y\nproperty float z\n"
            << "property uchar red\nproperty uchar green\nproperty uchar blue\nend_header\n";
-      for (const auto &[key, value] : voxels_) {
+      for (const auto &[key, value] : voxels_)
+      {
         const double n = value.n;
-        const std::array<float, 3> xyz = {
+        const std::array<float, 3> xyz =
+        {
           static_cast<float>(value.x / n), static_cast<float>(value.y / n),
-          static_cast<float>(value.z / n)};
-        const std::array<uint8_t, 3> rgb = {
+          static_cast<float>(value.z / n)
+          }
+          ;
+        const std::array<uint8_t, 3> rgb =
+        {
           static_cast<uint8_t>(value.r / n), static_cast<uint8_t>(value.g / n),
-          static_cast<uint8_t>(value.b / n)};
+          static_cast<uint8_t>(value.b / n)
+          }
+          ;
         file.write(reinterpret_cast<const char *>(xyz.data()), sizeof(xyz));
         file.write(reinterpret_cast<const char *>(rgb.data()), sizeof(rgb));
       }
@@ -178,33 +356,49 @@ class DenseMapper : public rclcpp::Node {
       dirty_=false;
       RCLCPP_INFO(get_logger(), "Saved dense map: %zu points -> %s", voxels_.size(), save_path_.c_str());
       return true;
-    } catch (const std::exception &e) {
+    }
+    catch (const std::exception &e)
+    {
       RCLCPP_ERROR(get_logger(), "Failed to save dense map: %s", e.what());
       return false;
     }
   }
 
-  void publish(const builtin_interfaces::msg::Time &stamp) {
+  void publish(const builtin_interfaces::msg::Time &stamp)
+  {
     sensor_msgs::msg::PointCloud2 out; out.header.stamp=stamp; out.header.frame_id=map_frame_;
     sensor_msgs::PointCloud2Modifier m(out); m.setPointCloud2FieldsByString(2,"xyz","rgb"); m.resize(voxels_.size());
     sensor_msgs::PointCloud2Iterator<float> x(out,"x"),y(out,"y"),z(out,"z");
     sensor_msgs::PointCloud2Iterator<uint8_t> r(out,"r"),g(out,"g"),b(out,"b");
-    for (const auto &[k,a]:voxels_) { const double n=a.n; *x=a.x/n;*y=a.y/n;*z=a.z/n;*r=a.r/n;*g=a.g/n;*b=a.b/n;++x;++y;++z;++r;++g;++b; }
+    for (const auto &[k,a]:voxels_)
+    {
+      const double n=a.n; *x=a.x/n;*y=a.y/n;*z=a.z/n;*r=a.r/n;*g=a.g/n;*b=a.b/n;++x;++y;++z;++r;++g;++b;
+    }
     cloud_pub_->publish(out);
     RCLCPP_INFO_THROTTLE(get_logger(),*get_clock(),5000,"Global dense map: %zu voxels",voxels_.size());
   }
 
-  void clearMap(const char *reason) {
+  void clearMap(const char *reason)
+  {
     if (!voxels_.empty()) RCLCPP_WARN(get_logger(), "Clearing dense map (%zu voxels): %s", voxels_.size(), reason);
     if (!voxels_.empty() && dirty_) saveMap();
     voxels_.clear(); frames_=0;
   }
 
-  double voxel_,min_depth_,max_depth_,fx_=0,fy_=0,cx_=0,cy_=0; int stride_,publish_every_,frames_=0; std::string map_frame_,save_path_;
+  double voxel_,min_depth_,max_depth_,sync_max_interval_ms_,fx_=0,fy_=0,cx_=0,cy_=0; int stride_,publish_every_,frames_=0; std::string map_frame_,save_path_;
   std::mutex calib_mutex_; std::unordered_map<VoxelKey,VoxelValue,VoxelHash> voxels_;
-  bool tracking_ok_=false, imu_initialized_=false, mapping_active_=false, have_last_pose_=false;
+  bool use_imu_=true, save_enabled_=true;
+  int imu_stable_frames_required_=30, imu_stable_frames_=0;
+  bool tracking_ok_=false, imu_initialized_=false, imu_gate_ready_=false;
+  bool mapping_active_=false, have_last_pose_=false;
   bool dirty_=false;
-  std::array<double,3> last_position_{}; std::array<double,4> last_orientation_{};
+  std::array<double,3> last_position_
+  {
+  }
+  ; std::array<double,4> last_orientation_
+  {
+  }
+  ;
   rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr info_sub_;
   rclcpp::Subscription<std_msgs::msg::Int32>::SharedPtr state_sub_;
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr imu_sub_;
@@ -213,6 +407,10 @@ class DenseMapper : public rclcpp::Node {
   rclcpp::TimerBase::SharedPtr autosave_timer_;
   message_filters::Subscriber<Image> color_sub_,depth_sub_; message_filters::Subscriber<Pose> pose_sub_;
   std::shared_ptr<Sync> sync_; rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr cloud_pub_;
-};
+}
+;
 
-int main(int argc,char **argv){rclcpp::init(argc,argv);rclcpp::spin(std::make_shared<DenseMapper>());rclcpp::shutdown();return 0;}
+int main(int argc,char **argv)
+{
+  rclcpp::init(argc,argv);rclcpp::spin(std::make_shared<DenseMapper>());rclcpp::shutdown();return 0;
+}

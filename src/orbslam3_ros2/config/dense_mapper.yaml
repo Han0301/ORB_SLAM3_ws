@@ -2,15 +2,24 @@
   ros__parameters:
     voxel_size: 0.04
     pixel_stride: 4
+
     min_depth: 0.25
     max_depth: 6.0
-    publish_every_n_frames: 10
-    save_path: /home/h/ORBSLAM_ws/maps/latest_dense_map.ply
+
+    publish_every_n_frames: 30
+    sync_max_interval_ms: 35.0
+    imu_stable_frames_required: 30
+
+    enable_save: false
     autosave_seconds: 10.0
+    save_path: /home/h/ORBSLAM_ws/maps/latest_dense_map.ply
+
     color_topic: /camera/color/image_raw
     depth_topic: /camera/depth/image_raw
-    pose_topic: /orb_slam3/pose
     camera_info_topic: /camera/color/camera_info
+
+    pose_topic: /orb_slam3/pose
     tracking_state_topic: /orb_slam3/tracking_state
     imu_initialized_topic: /orb_slam3/imu_initialized
+
     map_frame: orb_map
