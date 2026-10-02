@@ -1,0 +1,22 @@
+yolo_node:
+  ros__parameters:
+    # 图像输入与模型；engine_path 为空时使用包内 D-FINE-S engine。
+    image_topic: /camera/color/image_raw
+    detections_topic: /yolo/detections_2d
+    engine_path: ""
+
+    # 0 表示不主动限频；推理来不及时始终覆盖为最新帧，不积压旧图像。
+    inference_rate_hz: 0.0
+    max_frame_age_ms: 100.0
+
+    # 检测阈值；D-FINE 不需要 NMS，nms_iou_threshold 仅供兼容 YOLO engine 使用。
+    confidence_threshold: 0.40
+    nms_iou_threshold: 0.45
+
+    # 标注图发布：true 开启，false 关闭。
+    publish_annotated_image: true
+    annotated_image_topic: /yolo/debug_image
+
+    # 中文字体；Noto CJK 字体集合中的索引 2 对应简体中文。
+    annotation_font_path: /usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc
+    annotation_font_face_index: 2

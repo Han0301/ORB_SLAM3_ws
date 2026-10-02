@@ -1,0 +1,3 @@
+perception_interfaces/BoundingBox2D box
+int32 class_id
+float32 confidence

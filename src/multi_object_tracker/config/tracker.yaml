@@ -1,0 +1,29 @@
+tracker_node:
+  ros__parameters:
+    # ROS 接口。
+    detections_topic: /yolo/detections_2d
+    tracks_topic: /tracking/tracks_2d
+
+    # ByteTrack 两阶段置信度划分。
+    high_confidence_threshold: 0.60
+    low_confidence_threshold: 0.10
+    new_track_threshold: 0.70
+
+    # 匹配阈值；数值越高，对重叠要求越严格。
+    high_match_iou_threshold: 0.30
+    low_match_iou_threshold: 0.20
+    tentative_match_iou_threshold: 0.30
+    confidence_score_fusion_weight: 0.10
+    mahalanobis_threshold: 13.2767
+
+    # 轨迹生命周期与变帧率处理。
+    min_confirmed_hits: 2
+    max_lost_time_sec: 0.50
+    expected_frame_rate: 30.0
+    max_dt_sec: 0.20
+    reset_after_gap_sec: 1.00
+    class_aware_association: true
+
+    # Kalman 噪声相对目标框高度设置。
+    kalman_position_noise_weight: 0.05
+    kalman_velocity_noise_weight: 0.00625

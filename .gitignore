@@ -13,9 +13,9 @@
 
 # Editor and Python caches
 /.vscode/
+/.venv-*/
 **/__pycache__/
 *.py[cod]
 
 # ORB-SLAM3 generated build products inside the source submodule
 /third_party/ORB_SLAM3/build-core/
-

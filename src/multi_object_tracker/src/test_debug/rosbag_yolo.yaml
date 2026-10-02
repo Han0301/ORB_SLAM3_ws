@@ -1,0 +1,5 @@
+yolo_node:
+  ros__parameters:
+    use_sim_time: true
+    max_frame_age_ms: 500.0
+    publish_annotated_image: false
